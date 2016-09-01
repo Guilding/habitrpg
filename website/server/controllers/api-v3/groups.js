@@ -359,6 +359,11 @@ api.rejectGroupInvite = {
   },
 };
 
+function _removeMessagesFromMember (member, groupId) {
+  delete member.newMessages[groupId];
+  member.markModified('newMessages');
+}
+
 /**
  * @api {post} /api/v3/groups/:groupId/leave Leave a group
  * @apiVersion 3.0.0
@@ -390,7 +395,7 @@ api.leaveGroup = {
       throw new NotFound(res.t('groupNotFound'));
     }
 
-    // During quests, checke wheter user can leave
+    // During quests, check if user can leave
     if (group.type === 'party') {
       if (group.quest && group.quest.leader === user._id) {
         throw new NotAuthorized(res.t('questLeaderCannotLeaveGroup'));
@@ -402,6 +407,11 @@ api.leaveGroup = {
     }
 
     await group.leave(user, req.query.keep);
+
+    if (user.newMessages[group._id]) {
+      _removeMessagesFromMember(user, group._id);
+    }
+
     res.respond(200, {});
   },
 };
@@ -494,8 +504,7 @@ api.removeGroupMember = {
       }
 
       if (member.newMessages[group._id]) {
-        member.newMessages[group._id] = undefined;
-        member.markModified('newMessages');
+        _removeMessagesFromMember(member, group._id);
       }
 
       if (group.quest && group.quest.active && group.quest.leader === member._id) {

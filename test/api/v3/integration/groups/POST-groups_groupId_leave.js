@@ -122,10 +122,14 @@ describe('POST /groups/:groupId/leave', () => {
         privateGuild = group;
         leader = groupLeader;
         invitedUser = invitees[0];
+
+        await leader.post(`/groups/${group._id}/chat`, { message: 'Some message' });
       });
 
-      it('removes a group when the last member leaves', async () => {
+      it('removes a group and any new messages when the last member leaves', async () => {
         await leader.post(`/groups/${privateGuild._id}/leave`);
+
+        expect(leader.newMessages).to.be.empty;
 
         await expect(checkExistence('groups', privateGuild._id)).to.eventually.equal(false);
       });
